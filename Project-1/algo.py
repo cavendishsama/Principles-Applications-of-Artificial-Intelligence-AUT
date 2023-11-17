@@ -143,7 +143,7 @@ def solve(init_state, init_location, method):
         while frontier:
             _, current_node = heapq.heappop(frontier)
 
-            # Check if the Node is visited or not
+            # Check if the Node_BFS is visited or not
             if hash(current_node.cube.tobytes()) in visited:
                 continue
 
@@ -182,7 +182,131 @@ def solve(init_state, init_location, method):
             cost_limit += 1
 
     elif method == 'BiBFS':
-        ...
     
+        start_time = time()
+
+        class Node_BFS:
+            cube = None
+            cost = 0
+            parent = None
+            move = None
+            heuristic = None
+            location = None
+
+            def __lt__(self, other):
+                return (self.cost + self.heuristic) < (other.cost + other.heuristic)
+
+
+        limit = 1
+        Explored_nodes = 0
+        Expanded_nodes = 0
+        moves = []
+        frontier_start = OrderedDict()
+        frontier_goal = OrderedDict()
+        solved = solved_state()
+
+        initial_node = Node_BFS()
+        initial_node.cube = init_state
+        frontier_start[hash(initial_node.cube.tobytes())] = initial_node
+        goal = Node_BFS()
+        goal.cube = solved
+        frontier_goal[hash(goal.cube.tobytes())] = goal
+
+
+        while len(frontier_start) != 0 and len(frontier_goal) != 0:
+            _, current_start = frontier_start.popitem(last=False)
+            Explored_nodes += 1
+
+            if hash(current_start.cube.tobytes()) in frontier_goal:
+                # Dowanward and Upward searches meet
+                curr_goal = frontier_goal[hash(current_start.cube.tobytes())]
+                backing = frontier_goal[hash(current_start.cube.tobytes())]
+                front = current_start
+                moves_start = []
+
+                while front.parent is not None:
+                    moves_start.append(front.move)
+                    front = front.parent
+
+                moves_start.reverse()
+
+                # Retrieve moves from the meeting point to the goal state
+                moves_goal = []
+                while backing.parent is not None:
+                    if backing.move > 6:
+                        moves_goal.append(backing.move - 6)
+                    else:
+                        moves_goal.append(backing.move + 6)
+                    backing = backing.parent
+
+                moves = moves_start + moves_goal
+
+                print("Nodes Explored:", Explored_nodes)
+                print("Nodes Expanded:", Expanded_nodes)
+                End_time = time()
+                print("Time Taken:", End_time - start_time)
+
+                return moves
+
+            if current_start.cost + 1 <= limit:
+                child_cost = current_start.cost + 1
+                for i in range(12):
+                    Expanded_nodes += 1
+                    new_start = Node_BFS()
+                    new_start.cube = next_state(current_start.cube, i + 1)
+                    new_start.cost = child_cost
+                    new_start.parent = current_start
+                    new_start.move = i + 1
+                    frontier_start[hash(new_start.cube.tobytes())] = new_start
+
+            # Backward search
+            key_goal, curr_goal = frontier_goal.popitem(last=False)
+            Explored_nodes += 1
+
+            if hash(curr_goal.cube.tobytes()) in frontier_start:
+                # The two searches meet
+                current_start = frontier_start[hash(curr_goal.cube.tobytes())]
+                front = frontier_start[hash(curr_goal.cube.tobytes())]
+                backing = curr_goal
+                moves_start = []
+
+                while front.parent is not None:
+                    moves_start.append(front.move)
+                    front = front.parent
+
+                moves_start.reverse()
+
+                moves_goal = []
+                while backing.parent is not None:
+                    if backing.move > 6:
+                        moves_goal.append(backing.move - 6)
+                    else:
+                        moves_goal.append(backing.move + 6)
+                    backing = backing.parent
+
+                moves = moves_start + moves_goal
+
+
+                print("Nodes Explored:", Explored_nodes)
+                print("Nodes Expanded:", Expanded_nodes)
+                print("Time Taken:", time() - start_time)
+
+                return moves
+
+            if curr_goal.cost + 1 <= limit:
+                child_cost = curr_goal.cost + 1
+                for i in range(12):
+                    Expanded_nodes += 1
+                    new_goal = Node_BFS()
+                    new_goal.cube = next_state(curr_goal.cube, i + 1)
+                    new_goal.cost = child_cost
+                    new_goal.parent = curr_goal
+                    new_goal.move = i + 1
+                    frontier_goal[hash(new_goal.cube.tobytes())] = new_goal
+
+            limit += 1
+
+        return False
+
     else:
         return []
